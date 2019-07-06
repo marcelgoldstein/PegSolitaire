@@ -9,7 +9,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/bin/Debug/netcoreapp3.0/PegSolitaire.dll",
+            "program": "${workspaceFolder}/bin/Debug/netcoreapp2.2/PegSolitaire.dll",
             "args": [],
             "cwd": "${workspaceFolder}",
             "console": "internalConsole",
