@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace PegSolitaire
@@ -22,8 +23,12 @@ namespace PegSolitaire
         // Hält den Zustand des Feldes. null => nicht betretbar; false => leerstehend; true => gefüllt
         private bool?[,] field;
 
+        private bool printEachStep = false;
+
         public Field(int size)
         {
+            this.printEachStep = Environment.GetCommandLineArgs().Select(a => a.ToUpper()).Contains("-print".ToUpper());
+
             if (size % 2 != 1)
             {
                 throw new ArgumentException("The size must be an uneven number.");
@@ -93,9 +98,6 @@ namespace PegSolitaire
 
         public void Print(Move highlightMove = null)
         {
-            if (Environment.GetCommandLineArgs().Select(a => a.ToUpper()).Contains("-print".ToUpper()) == false)
-                return;
-
             (int X, int Y) startPos = default;
             (int X, int Y) jumpedPos = default;
             (int X, int Y) targetPos = default;
@@ -250,13 +252,15 @@ namespace PegSolitaire
             }
         }
 
-        public List<MoveTracker> ProbePossibleMoves()
+        public async Task<List<MoveTracker>> ProbePossibleMoves(CancellationToken ct)
         {
+            await Task.CompletedTask;
+
             var mts = new List<MoveTracker>();
             var mt = new MoveTracker();
             mts.Add(mt);
 
-            while (true)
+            while (ct.IsCancellationRequested == false)
             {
                 if (this.MakeFirstPossibleMove(mts, mt) == false)
                 {
@@ -266,21 +270,30 @@ namespace PegSolitaire
                         break; // no moves left to probe
                     }
 
-                    this.Print();
-
                     var lastValidMove = mt.Moves.LastOrDefault();
                     if (mt.FreshClone == false)
                     {
                         mt = mt.Clone();
                         mts.Add(mt);
-                        mt.Moves.Remove(lastValidMove);
                     }
+
+                    mt.Moves.Remove(lastValidMove);
                     this.RevertMove(lastValidMove.X, lastValidMove.Y, lastValidMove.Direction); // revert last move on current field
+
+                    if (this.printEachStep)
+                    {
+                        this.Print();
+                    }
                 }
                 else
                 {
-                    var lastValidMove = mt.Moves.Last();
-                    this.Print(lastValidMove);
+                    mt.FreshClone = false;
+
+                    if (this.printEachStep)
+                    {
+                        var lastValidMove = mt.Moves.Last();
+                        this.Print(lastValidMove);
+                    }
                 }
             }
 
