@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace PegSolitaire
 {
@@ -89,18 +91,57 @@ namespace PegSolitaire
             this.field[center, center] = false;
         }
 
-        public void Print()
+        public void Print(Move highlightMove = null)
         {
+            if (Environment.GetCommandLineArgs().Select(a => a.ToUpper()).Contains("-print".ToUpper()) == false)
+                return;
+
+            (int X, int Y) startPos = default;
+            (int X, int Y) jumpedPos = default;
+            (int X, int Y) targetPos = default;
+            if (highlightMove != null)
+            {
+                startPos = (highlightMove.X, highlightMove.Y);
+                switch (highlightMove.Direction)
+                {
+                    case Directions.Left:
+                        jumpedPos = (highlightMove.X - 1, highlightMove.Y);
+                        targetPos = (highlightMove.X - 2, highlightMove.Y);
+                        break;
+                    case Directions.Up:
+                        jumpedPos = (highlightMove.X, highlightMove.Y - 1);
+                        targetPos = (highlightMove.X, highlightMove.Y - 2);
+                        break;
+                    case Directions.Right:
+                        jumpedPos = (highlightMove.X + 1, highlightMove.Y);
+                        targetPos = (highlightMove.X + 2, highlightMove.Y);
+                        break;
+                    case Directions.Down:
+                        jumpedPos = (highlightMove.X, highlightMove.Y + 1);
+                        targetPos = (highlightMove.X, highlightMove.Y + 2);
+                        break;
+                }
+            }
+
             Console.WriteLine("_____________________________");
             Console.WriteLine();
             for (int y = 0; y < this.size; y++)
             {
                 for (int x = 0; x < this.size; x++)
                 {
+                    if (x == startPos.X && y == startPos.Y)
+                        Console.ForegroundColor = ConsoleColor.Red;
+                    else if (x == jumpedPos.X && y == jumpedPos.Y)
+                        Console.ForegroundColor = ConsoleColor.Red;
+                    else if (x == targetPos.X && y == targetPos.Y)
+                        Console.ForegroundColor = ConsoleColor.Green;
+
                     if (this.field[x, y] == null)
                         Console.Write("   ");
                     else
                         Console.Write($"[{((this.field[x, y] == true) ? "x" : " ")}]");
+
+                    Console.ResetColor();
                 }
                 Console.WriteLine();
             }
@@ -109,7 +150,7 @@ namespace PegSolitaire
 
         public bool CanMove(int x, int y, Directions direction)
         {
-            if (this.field[x, y] == null)
+            if (this.field[x, y] != true)
                 return false; // starting position is not set
 
             switch (direction)
@@ -155,7 +196,7 @@ namespace PegSolitaire
             }
         }
 
-        public void Move(int x, int y, Directions direction)
+        public void MakeMove(int x, int y, Directions direction)
         {
             this.field[x, y] = false; // clear starting position
 
@@ -209,24 +250,44 @@ namespace PegSolitaire
             }
         }
 
-        public void ProbePossibleMoves()
+        public List<MoveTracker> ProbePossibleMoves()
         {
-            var moveTrackers = new List<MoveTracker>();
+            var mts = new List<MoveTracker>();
             var mt = new MoveTracker();
-            moveTrackers.Add(mt);
+            mts.Add(mt);
 
             while (true)
             {
-                if (this.MakeFirstPossibleMove(mt) == false)
+                if (this.MakeFirstPossibleMove(mts, mt) == false)
                 {
-                    var mtNext = new MoveTracker();
-                    mtNext.Moves.AddRange(mt.Moves);
+                    if (mt.Moves.Any() == false)
+                    {
+                        mts.Remove(mt);
+                        break; // no moves left to probe
+                    }
 
+                    this.Print();
+
+                    var lastValidMove = mt.Moves.LastOrDefault();
+                    if (mt.FreshClone == false)
+                    {
+                        mt = mt.Clone();
+                        mts.Add(mt);
+                        mt.Moves.Remove(lastValidMove);
+                    }
+                    this.RevertMove(lastValidMove.X, lastValidMove.Y, lastValidMove.Direction); // revert last move on current field
+                }
+                else
+                {
+                    var lastValidMove = mt.Moves.Last();
+                    this.Print(lastValidMove);
                 }
             }
+
+            return mts;
         }
 
-        public bool MakeFirstPossibleMove(MoveTracker mt)
+        public bool MakeFirstPossibleMove(List<MoveTracker> mts, MoveTracker mt)
         {
             for (int y = 0; y < this.size; y++)
             {
@@ -234,10 +295,11 @@ namespace PegSolitaire
                 {
                     foreach (Directions direction in Enum.GetValues(typeof(Directions)))
                     {
-                        if (this.CanMove(x, y, direction))
+                        var m = new Move { X = x, Y = y, Direction = direction, PreviousMove = mt.Moves.LastOrDefault(), Number = mt.Moves.Count + 1 };
+                        if (this.CanMove(x, y, direction) && mts.Any(a => a.Moves.Any(b => b == m)) == false)
                         {
-                            mt.Moves.Add(new Move{X = x, Y = y, Direction = direction});
-                            this.Move(x, y, direction);
+                            mt.Moves.Add(m);
+                            this.MakeMove(x, y, direction);
                             return true;
                         }
                     }
