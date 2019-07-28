@@ -5,14 +5,36 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": ".NET Core Launch (console)",
+            "name": ".NET Core Launch (internalConsole)",
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/bin/Debug/netcoreapp3.0/PegSolitaire.dll",
+            "program": "${workspaceFolder}/bin/Debug/netcoreapp2.2/PegSolitaire.dll",
             "args": [],
             "cwd": "${workspaceFolder}",
             "console": "internalConsole",
+            "stopAtEntry": false
+        },
+        {
+            "name": ".NET Core Launch (integratedTerminal)",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/bin/Debug/netcoreapp2.2/PegSolitaire.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "stopAtEntry": false
+        },
+        {
+            "name": ".NET Core Launch (externalTerminal)",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/bin/Debug/netcoreapp2.2/PegSolitaire.dll",
+            "args": ["-print"],
+            "cwd": "${workspaceFolder}",
+            "console": "externalTerminal",
             "stopAtEntry": false
         },
         {
